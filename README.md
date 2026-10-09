@@ -26,8 +26,8 @@ Project **HandShayak** goes beyond static imagery by treating the hand as a mech
 * **Monojoy:** Frontend Lead (Client-Side UI, WebSockets & Visualization)
 * **Simran:** ML & Backend Architect (FastAPI, Model Training & ONNX Export)
 * **Krishnendu:** DevOps Lead (Dockerization, Cloud Deployment & CI/CD)
-* **Jai:** Physics Engine Developer (Kinematics, Dynamics & Math via NumPy)
-* **Debo:** Vision Pipeline Developer (MediaPipe 3D Landmark Extraction)
+* **Jai Krishna:** Physics Engine Developer (Kinematics, Dynamics & Math via NumPy)
+* **Debonnita:** Vision Pipeline Developer (MediaPipe 3D Landmark Extraction)
 * **Koushik:** Data Engineer & QA (Feature Aggregation, Pytest Unit Testing)
 
 ## 🚀 Installation & Setup
