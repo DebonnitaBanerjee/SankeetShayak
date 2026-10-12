@@ -53,13 +53,57 @@ def run_simulation_demo():
     print("=" * 65)
 
 
-def run_webcam_demo():
+def get_working_camera(preferred_index: int = 0):
+    """Probe for available cameras using macOS AVFoundation backend."""
+    # Try preferred index with AVFoundation first
+    cap = cv2.VideoCapture(preferred_index, cv2.CAP_AVFOUNDATION)
+    if cap.isOpened():
+        return cap, preferred_index
+
+    cap.release()
+
+    # Probe indices 0, 1, 2
+    for idx in [0, 1, 2]:
+        if idx == preferred_index:
+            continue
+        test_cap = cv2.VideoCapture(idx, cv2.CAP_AVFOUNDATION)
+        if test_cap.isOpened():
+            ret, _ = test_cap.read()
+            if ret:
+                return test_cap, idx
+            test_cap.release()
+
+    # Fallback to default backend
+    fallback_cap = cv2.VideoCapture(preferred_index)
+    if fallback_cap.isOpened():
+        return fallback_cap, preferred_index
+
+    fallback_cap.release()
+    return None, preferred_index
+
+
+def run_webcam_demo(camera_index: int = 0):
     print("\nStarting live webcam stream... Press 'q' to exit.")
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("Error: Could not open webcam device (index 0).")
+    cap, actual_idx = get_working_camera(camera_index)
+
+    if cap is None or not cap.isOpened():
+        print("\n" + "=" * 65)
+        print("❌ CAMERA ACCESS ERROR: OpenCV could not open the webcam.")
+        print("=" * 65)
+        print("This is almost always a macOS Privacy Permission issue.\n")
+        print("To fix this on your Mac:")
+        print("1. Open: System Settings (Apple Menu  > System Settings)")
+        print("2. Go to: Privacy & Security > Camera")
+        print("3. Find your Terminal application (e.g. Terminal, iTerm2, VS Code,")
+        print("   Cursor, or your IDE) and TOGGLE THE SWITCH TO ON (Enabled).")
+        print("4. If your terminal is already running, restart it and re-run:")
+        print("     python demo.py --webcam")
+        print("\nAlternative: If you have an external webcam or Continuity Camera, try:")
+        print("     python demo.py --webcam --cam-index 1")
+        print("=" * 65)
         sys.exit(1)
 
+    print(f"✅ Camera initialized successfully on index {actual_idx}!")
     detector = HandLandmarkDetector()
     visualizer = HandVisualizer()
 
@@ -108,9 +152,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SankeetShayak Demo Runner")
     parser.add_argument("--simulate", action="store_true", help="Run simulated physics and classification demo")
     parser.add_argument("--webcam", action="store_true", help="Run live webcam hand tracking")
+    parser.add_argument("--cam-index", type=int, default=0, help="Camera device index (default: 0)")
     args = parser.parse_args()
 
     if args.webcam:
-        run_webcam_demo()
+        run_webcam_demo(camera_index=args.cam_index)
     else:
         run_simulation_demo()
