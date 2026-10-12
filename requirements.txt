@@ -1,0 +1,22 @@
+# Core Computer Vision & Landmarks
+opencv-python-headless>=4.8.0
+mediapipe>=0.10.9
+
+# Numerical Physics & Kinematics Engine
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Machine Learning & Optimized Inference
+scikit-learn>=1.3.0
+onnxruntime>=1.16.0
+joblib>=1.3.0
+
+# Backend API & Real-Time Streaming
+fastapi>=0.104.0
+uvicorn[standard]>=0.23.0
+websockets>=12.0
+pydantic>=2.4.0
+httpx>=0.25.0
+
+# Testing & Quality Assurance
+pytest>=7.4.0
