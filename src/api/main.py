@@ -17,6 +17,7 @@ from src.api.schemas import (
     TrajectoryPredictRequest,
 )
 from src.api.websocket_handler import WebSocketStreamManager
+from src.config import settings
 from src.models.predictor import GesturePredictor
 
 app = FastAPI(
@@ -28,7 +29,7 @@ app = FastAPI(
 # Enable CORS for frontend integration (e.g. Vite / React dev servers)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

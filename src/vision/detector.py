@@ -191,6 +191,138 @@ class HandLandmarkDetector:
 
         return centered / scale_factor
 
+    def extract_from_capture(
+        self,
+        cap: cv2.VideoCapture,
+        max_frames: Optional[int] = None,
+        normalized: bool = True,
+        interpolate_missing: bool = True
+    ) -> np.ndarray:
+        """Extract landmarks across all frames of a cv2.VideoCapture stream.
+
+        Args:
+            cap: Initialized cv2.VideoCapture object.
+            max_frames: Optional maximum number of frames to process.
+            normalized: If True, returns scale & translation normalized coordinates.
+                        If False, returns raw coordinates.
+            interpolate_missing: If True, interpolates frames where no hand was detected.
+
+        Returns:
+            np.ndarray of shape (num_frames, 21, 3).
+        """
+        frames_data: List[Optional[np.ndarray]] = []
+        frame_idx = 0
+
+        while cap.isOpened():
+            if max_frames is not None and frame_idx >= max_frames:
+                break
+            ret, frame = cap.read()
+            if not ret or frame is None:
+                break
+
+            result = self.process_frame(frame)
+            if result.detected:
+                coords = result.normalized_landmarks if normalized else result.raw_landmarks
+                frames_data.append(coords)
+            else:
+                frames_data.append(None)
+            frame_idx += 1
+
+        if not frames_data:
+            return np.zeros((0, 21, 3), dtype=np.float32)
+
+        # Handle missing frames (interpolation / forward-backward fill)
+        num_frames = len(frames_data)
+        out_array = np.zeros((num_frames, 21, 3), dtype=np.float32)
+
+        # Find first valid frame
+        first_valid_idx = next((i for i, f in enumerate(frames_data) if f is not None), None)
+        if first_valid_idx is None:
+            # No hand detected in any frame
+            return out_array
+
+        last_known = frames_data[first_valid_idx]
+        for i in range(num_frames):
+            if frames_data[i] is not None:
+                last_known = frames_data[i]
+                out_array[i] = last_known
+            else:
+                if interpolate_missing and last_known is not None:
+                    out_array[i] = last_known
+                else:
+                    out_array[i] = np.zeros((21, 3), dtype=np.float32)
+
+        return out_array
+
+    def extract_from_video(
+        self,
+        video_path: Union[str, Path],
+        max_frames: Optional[int] = None,
+        normalized: bool = True,
+        interpolate_missing: bool = True
+    ) -> np.ndarray:
+        """Extract 3D hand landmark trajectory from a video file.
+
+        Args:
+            video_path: Path to the video file (.mp4, .avi, etc.).
+            max_frames: Optional maximum frames to process.
+            normalized: Whether to return wrist-normalized coordinates.
+            interpolate_missing: Whether to interpolate missing detections.
+
+        Returns:
+            np.ndarray of shape (num_frames, 21, 3).
+        """
+        path_str = str(video_path)
+        cap = cv2.VideoCapture(path_str)
+        if not cap.isOpened():
+            raise FileNotFoundError(f"Could not open video file: {video_path}")
+        try:
+            return self.extract_from_capture(
+                cap,
+                max_frames=max_frames,
+                normalized=normalized,
+                interpolate_missing=interpolate_missing
+            )
+        finally:
+            cap.release()
+
+    def extract_from_webcam(
+        self,
+        duration_sec: float = 2.0,
+        camera_index: int = 0,
+        fps: float = 30.0,
+        normalized: bool = True,
+        interpolate_missing: bool = True
+    ) -> np.ndarray:
+        """Extract 3D hand landmark trajectory directly from the webcam for a given duration.
+
+        Args:
+            duration_sec: Duration in seconds to record.
+            camera_index: Device index of the camera.
+            fps: Approximate target FPS (e.g. 30).
+            normalized: Whether to return wrist-normalized coordinates.
+            interpolate_missing: Whether to interpolate missing detections.
+
+        Returns:
+            np.ndarray of shape (num_frames, 21, 3).
+        """
+        cap = cv2.VideoCapture(camera_index, cv2.CAP_AVFOUNDATION)
+        if not cap.isOpened():
+            cap = cv2.VideoCapture(camera_index)
+        if not cap.isOpened():
+            raise RuntimeError(f"Could not open camera device index {camera_index}")
+
+        max_frames = int(duration_sec * fps)
+        try:
+            return self.extract_from_capture(
+                cap,
+                max_frames=max_frames,
+                normalized=normalized,
+                interpolate_missing=interpolate_missing
+            )
+        finally:
+            cap.release()
+
     def close(self):
         """Release MediaPipe resources."""
         if hasattr(self, "detector") and self.detector:
@@ -201,3 +333,4 @@ class HandLandmarkDetector:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
